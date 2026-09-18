@@ -121,3 +121,13 @@ relance le collecteur de `mo status`.
 - Les mises à la Corbeille faites depuis Projets et Installeurs n'apparaissent pas
   dans `mo history`.
 - L'analyse visuelle du disque (`mo analyze`) n'est pas encore intégrée.
+
+## Licence
+
+Le code de moleCleaner est publié sous licence [MIT](LICENSE).
+
+[Mole](https://github.com/tw93/Mole), que cette app pilote sans en embarquer le code,
+est également sous licence MIT. L'icône de moleCleaner (`scripts/mole-mark.png` et les
+variantes produites par `scripts/make-icon.swift`) est dérivée de la marque officielle
+de Mole, utilisée ici par filiation avec le projet et non en signe d'une quelconque
+affiliation.
