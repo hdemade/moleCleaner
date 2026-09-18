@@ -9,7 +9,6 @@ désinstallation d'apps et maintenance, dans une fenêtre et depuis la barre de 
 ## Prérequis
 
 - macOS 14 ou plus récent
-- Mole installé : `brew install mole`
 - Les Command Line Tools suffisent pour compiler, Xcode n'est pas nécessaire
 
 ## Construire
