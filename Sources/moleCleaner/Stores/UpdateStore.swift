@@ -46,11 +46,15 @@ final class UpdateStore {
     private static let latestKey = "updateLatestVersion"
     private static let checkedKey = "updateLastChecked"
     private static let autoKey = "autoCheckUpdates"
+    private static let skippedKey = "updateSkippedVersion"
     private static let staleAfter: TimeInterval = 60 * 60 * 24
 
     var autoCheck: Bool {
         didSet { UserDefaults.standard.set(autoCheck, forKey: Self.autoKey) }
     }
+
+    /// Version que l'utilisateur a choisi d'ignorer : la popup du lancement ne la propose plus.
+    private(set) var skippedVersion: String?
 
     init(moPath: String, lock: TaskLock) {
         self.moPath = moPath
@@ -61,6 +65,7 @@ final class UpdateStore {
         if let stamp = defaults.object(forKey: Self.checkedKey) as? Double {
             lastChecked = Date(timeIntervalSince1970: stamp)
         }
+        skippedVersion = defaults.string(forKey: Self.skippedKey)
     }
 
     // MARK: - État dérivé
@@ -72,6 +77,9 @@ final class UpdateStore {
         }
     }
 
+    /// Vrai tant que la nouvelle version n'a pas été ignorée.
+    var canSkipNewVersion: Bool { newVersion != nil && newVersion != skippedVersion }
+
     var isChecking: Bool { status == .checking }
     var isUpdating: Bool { session?.isRunning ?? false }
     var releaseNotesURL = URL(string: "https://github.com/tw93/Mole/releases/latest")!
@@ -82,6 +90,20 @@ final class UpdateStore {
     func checkIfStale() async {
         if let lastChecked, Date().timeIntervalSince(lastChecked) < Self.staleAfter, restoreCached() { return }
         await check()
+    }
+
+    /// Au lancement : vérifie (au plus une fois par jour) et ouvre la feuille si une version
+    /// non ignorée est disponible.
+    func checkAtLaunch() async {
+        await checkIfStale()
+        guard canSkipNewVersion, !showSheet else { return }
+        showSheet = true
+    }
+
+    /// Ne plus proposer cette version au lancement ; une version plus récente sera de nouveau annoncée.
+    func skipNewVersion() {
+        skippedVersion = newVersion
+        UserDefaults.standard.set(skippedVersion, forKey: Self.skippedKey)
     }
 
     private func restoreCached() -> Bool {

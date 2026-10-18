@@ -90,7 +90,7 @@ final class AppModel {
         update.onRefresh = { [weak self] in await self?.refreshAfterUpdate() }
         await loadVersion()
         if update.autoCheck {
-            Task { await update.checkIfStale() }
+            Task { await update.checkAtLaunch() }
         }
     }
 
