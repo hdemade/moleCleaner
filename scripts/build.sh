@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 APP="build/moleCleaner.app"
 BIN="$APP/Contents/MacOS/moleCleaner"
-VERSION="1.0.0"
+VERSION="1.1.0"
 INSTALL=false
 UNIVERSAL=false
 for arg in "$@"; do
@@ -79,6 +79,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 echo "→ Signature ad hoc…"
+# iCloud Drive (File Provider) pose des attributs étendus que codesign refuse.
+xattr -cr "$APP"
 codesign --force --sign - "$APP"
 
 if $INSTALL; then
