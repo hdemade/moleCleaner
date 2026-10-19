@@ -18,17 +18,13 @@ struct UpdateSheet: View {
             }
 
             HStack {
-                if store.session == nil {
-                    Button("Vérifier à nouveau") { Task { await store.check() } }
-                        .disabled(store.isChecking)
-                }
-                Spacer()
                 if store.session == nil, store.canSkipNewVersion {
                     Button("Ignorer cette version") {
                         store.skipNewVersion()
                         dismiss()
                     }
                 }
+                Spacer()
                 if let session = store.session, !session.isRunning {
                     if session.state != .finished(0) {
                         Button("Réessayer") { store.startUpdate() }
