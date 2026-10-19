@@ -63,7 +63,17 @@ final class AppModel {
     let optimize: OptimizeStore
     let history: HistoryStore
     let update: UpdateStore
+    let appUpdate = AppUpdateStore()
+    let diskAccess = DiskAccessStore()
     let setup = SetupStore()
+
+    /// Popups du lancement. Elles partagent la fenêtre principale : une seule à la fois, les
+    /// suivantes attendent que la précédente soit fermée.
+    enum LaunchPrompt {
+        case diskAccess, appUpdate, moleUpdate
+    }
+
+    private var pendingPrompts: [LaunchPrompt] = []
 
     init() {
         let mo = MoleCLI.locate()
@@ -84,13 +94,53 @@ final class AppModel {
     private var bootstrapped = false
 
     func bootstrap() async {
+        if !launchPromptsStarted {
+            launchPromptsStarted = true
+            if diskAccess.shouldPromptAtLaunch { enqueue(.diskAccess) }
+            if appUpdate.autoCheck {
+                Task { if await appUpdate.checkAtLaunch() { enqueue(.appUpdate) } }
+            }
+        }
         guard !bootstrapped, moPath != nil else { return }
         bootstrapped = true
         status.start()
         update.onRefresh = { [weak self] in await self?.refreshAfterUpdate() }
         await loadVersion()
         if update.autoCheck {
-            Task { await update.checkAtLaunch() }
+            Task { if await update.checkAtLaunch() { enqueue(.moleUpdate) } }
+        }
+    }
+
+    private var launchPromptsStarted = false
+
+    private var isShowingSheet: Bool {
+        diskAccess.showSheet || appUpdate.showSheet || update.showSheet
+    }
+
+    private func enqueue(_ prompt: LaunchPrompt) {
+        if isShowingSheet || !pendingPrompts.isEmpty {
+            pendingPrompts.append(prompt)
+        } else {
+            present(prompt)
+        }
+    }
+
+    private func present(_ prompt: LaunchPrompt) {
+        switch prompt {
+        case .diskAccess: diskAccess.showSheet = true
+        case .appUpdate: appUpdate.showSheet = true
+        case .moleUpdate: update.showSheet = true
+        }
+    }
+
+    /// Appelé à la fermeture de chaque feuille : affiche la popup suivante, après un court délai
+    /// pour laisser l'animation de fermeture se terminer.
+    func launchSheetDismissed() {
+        guard !pendingPrompts.isEmpty else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !isShowingSheet, !pendingPrompts.isEmpty else { return }
+            present(pendingPrompts.removeFirst())
         }
     }
 

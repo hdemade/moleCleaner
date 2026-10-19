@@ -14,6 +14,10 @@ struct MoleCleanerApp: App {
         .defaultSize(width: 1120, height: 740)
         .commands {
             CommandGroup(after: .appInfo) {
+                Button("Rechercher les mises à jour de moleCleaner…") {
+                    model.appUpdate.showSheet = true
+                    Task { await model.appUpdate.check() }
+                }
                 Button("Rechercher les mises à jour de Mole…") {
                     model.update.showSheet = true
                     Task { await model.update.check() }

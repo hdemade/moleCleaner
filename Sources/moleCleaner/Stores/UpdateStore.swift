@@ -92,12 +92,11 @@ final class UpdateStore {
         await check()
     }
 
-    /// Au lancement : vérifie (au plus une fois par jour) et ouvre la feuille si une version
-    /// non ignorée est disponible.
-    func checkAtLaunch() async {
+    /// Au lancement : vérifie (au plus une fois par jour) et indique s'il faut ouvrir la feuille,
+    /// c'est-à-dire si une version non ignorée est disponible. `AppModel` décide quand l'afficher.
+    func checkAtLaunch() async -> Bool {
         await checkIfStale()
-        guard canSkipNewVersion, !showSheet else { return }
-        showSheet = true
+        return canSkipNewVersion && !showSheet
     }
 
     /// Ne plus proposer cette version au lancement ; une version plus récente sera de nouveau annoncée.

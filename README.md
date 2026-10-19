@@ -111,6 +111,24 @@ peut demander le mot de passe administrateur, géré par la même fenêtre que l
 opérations). Le binaire étant remplacé pendant l'opération, l'app relit ensuite la version et
 relance le collecteur de `mo status`.
 
+### Mise à jour de moleCleaner
+
+Au lancement (au plus une fois par jour), l'app compare sa version à la dernière release GitHub
+de hdemade/moleCleaner. Si une version plus récente existe, une fenêtre affiche ses notes avec
+« Ignorer cette version », « Plus tard » et « Télécharger ». Le téléchargement place le DMG de
+la release dans Téléchargements puis l'ouvre : il reste à glisser l'app dans Applications.
+L'app ne se remplace pas elle-même.
+
+### Accès complet au disque
+
+Certaines commandes de Mole lisent des dossiers protégés par macOS. Si l'accès complet au disque
+n'est pas accordé, une fenêtre le demande au lancement, avec « Refuser » (elle ne revient plus)
+et « Ouvrir les réglages ». L'état et la demande au lancement se règlent dans les Réglages de
+l'app. L'app étant signée ad hoc, une recompilation peut faire perdre l'accès accordé.
+
+Les fenêtres du lancement s'affichent l'une après l'autre : accès au disque, mise à jour de
+moleCleaner, puis mise à jour de Mole.
+
 ### Limites connues
 
 - L'app lit la sortie texte de Mole : une évolution du format de Mole peut demander

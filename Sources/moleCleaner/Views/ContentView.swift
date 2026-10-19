@@ -7,6 +7,8 @@ struct ContentView: View {
     var body: some View {
         @Bindable var model = model
         @Bindable var update = model.update
+        @Bindable var appUpdate = model.appUpdate
+        @Bindable var diskAccess = model.diskAccess
         NavigationSplitView {
             List(selection: $model.page) {
                 Section("Surveillance") { row(.status) }
@@ -27,7 +29,15 @@ struct ContentView: View {
             PageDetail(page: model.page ?? .status)
         }
         .task { await model.bootstrap() }
-        .sheet(isPresented: $update.showSheet) { UpdateSheet().environment(model) }
+        .sheet(isPresented: $diskAccess.showSheet, onDismiss: model.launchSheetDismissed) {
+            DiskAccessSheet().environment(model)
+        }
+        .sheet(isPresented: $appUpdate.showSheet, onDismiss: model.launchSheetDismissed) {
+            AppUpdateSheet().environment(model)
+        }
+        .sheet(isPresented: $update.showSheet, onDismiss: model.launchSheetDismissed) {
+            UpdateSheet().environment(model)
+        }
     }
 
     private func row(_ page: Page) -> some View {
@@ -47,26 +57,54 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
-            Button { model.update.showSheet = true } label: {
-                HStack(spacing: 5) {
-                    Text(model.version.map { "Mole \($0)" } ?? "Mole")
-                    if model.update.newVersion != nil {
-                        Circle().fill(.orange).frame(width: 6, height: 6)
+            HStack(alignment: .center, spacing: 4) {
+                VStack(alignment: .leading, spacing: 0) {
+                    versionButton(model.version.map { "Mole \($0)" } ?? "Mole",
+                                  newVersion: model.update.newVersion, product: "Mole") {
+                        model.update.showSheet = true
+                    }
+                    versionButton("moleCleaner \(model.appUpdate.currentVersion)",
+                                  newVersion: model.appUpdate.release?.version, product: "moleCleaner") {
+                        model.appUpdate.showSheet = true
                     }
                 }
-                .font(.caption)
-                .foregroundStyle(model.update.newVersion == nil ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.orange))
-                .padding(.vertical, 3)
-                .padding(.horizontal, 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
+                SettingsLink {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 26, height: 26)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .hoverHighlight(cornerRadius: 6, expand: EdgeInsets())
+                .help("Réglages")
             }
-            .buttonStyle(.plain)
-            .hoverHighlight(expand: EdgeInsets(top: 3, leading: 4, bottom: 3, trailing: 4))
-            .help(model.update.newVersion.map { "Mole \($0) est disponible" } ?? "Rechercher les mises à jour de Mole")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
+    }
+
+    /// Version affichée en bas de la barre latérale, en orange avec une pastille quand une mise à
+    /// jour est disponible ; un clic ouvre la feuille de mise à jour correspondante.
+    private func versionButton(_ title: String, newVersion: String?, product: String,
+                               action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Text(title)
+                if newVersion != nil {
+                    Circle().fill(.orange).frame(width: 6, height: 6)
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(newVersion == nil ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.orange))
+            .padding(.vertical, 3)
+            .padding(.horizontal, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .hoverHighlight(expand: EdgeInsets(top: 3, leading: 4, bottom: 3, trailing: 4))
+        .help(newVersion.map { "\(product) \($0) est disponible" } ?? "Rechercher les mises à jour de \(product)")
     }
 }
 
@@ -253,6 +291,8 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var status = model.status
         @Bindable var update = model.update
+        @Bindable var appUpdate = model.appUpdate
+        @Bindable var diskAccess = model.diskAccess
         Form {
             Section("Surveillance") {
                 Picker("Fréquence de mise à jour", selection: $status.interval) {
@@ -274,6 +314,33 @@ struct SettingsView: View {
                         }
                     }
                 if let loginError { Text(loginError).font(.caption).foregroundStyle(.red) }
+            }
+            Section("Accès au disque") {
+                LabeledContent("Accès complet au disque") {
+                    HStack(spacing: 8) {
+                        diskAccessStatus
+                        Button("Ouvrir les réglages") { model.diskAccess.openSettings() }
+                    }
+                }
+                Toggle("Demander au lancement s'il n'est pas accordé", isOn: $diskAccess.promptAtLaunch)
+            }
+            Section("moleCleaner") {
+                LabeledContent("Version installée", value: model.appUpdate.currentVersion)
+                LabeledContent("Mises à jour") {
+                    HStack(spacing: 8) {
+                        appUpdateStatus
+                        Button("Vérifier") { Task { await model.appUpdate.check() } }
+                            .disabled(model.appUpdate.isChecking)
+                        if model.appUpdate.release != nil {
+                            Button("Mettre à jour…") {
+                                openWindow(id: "main")
+                                model.appUpdate.showSheet = true
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
+                }
+                Toggle("Vérifier automatiquement au lancement", isOn: $appUpdate.autoCheck)
             }
             Section("Mole") {
                 LabeledContent("Version installée", value: model.version ?? "—")
@@ -300,6 +367,43 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
+        // L'accès se modifie dans Réglages Système : on relit l'état en revenant dans l'app.
+        .onAppear { model.diskAccess.refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            model.diskAccess.refresh()
+        }
+    }
+
+    @ViewBuilder
+    private var diskAccessStatus: some View {
+        switch model.diskAccess.hasFullAccess {
+        case true?:
+            Label("Accordé", systemImage: "checkmark.circle.fill").foregroundStyle(.green).font(.callout)
+        case false?:
+            Label("Non accordé", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange).font(.callout)
+        case nil:
+            Text("Inconnu").foregroundStyle(.secondary).font(.callout)
+        }
+    }
+
+    @ViewBuilder
+    private var appUpdateStatus: some View {
+        switch model.appUpdate.status {
+        case .checking:
+            HStack(spacing: 5) {
+                ProgressView().controlSize(.small)
+                Text("Vérification…")
+            }
+            .font(.callout)
+        case .upToDate:
+            Label("À jour", systemImage: "checkmark.circle.fill").foregroundStyle(.green).font(.callout)
+        case .available(let release):
+            Label("\(release.version) disponible", systemImage: "arrow.down.circle.fill").foregroundStyle(.orange).font(.callout)
+        case .failed:
+            Label("Échec de la vérification", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange).font(.callout)
+        case .unknown:
+            Text("—").foregroundStyle(.secondary).font(.callout)
+        }
     }
 
     @ViewBuilder

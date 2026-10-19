@@ -53,6 +53,17 @@ struct MenuBarView: View {
             Divider()
 
             VStack(spacing: 2) {
+                if let release = model.appUpdate.release {
+                    Button {
+                        open(nil)
+                        model.appUpdate.showSheet = true
+                    } label: {
+                        Label("moleCleaner \(release.version) disponible", systemImage: "arrow.down.circle.fill")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(MenuRowStyle())
+                    .foregroundStyle(.orange)
+                }
                 if let version = model.update.newVersion {
                     Button {
                         open(nil)
