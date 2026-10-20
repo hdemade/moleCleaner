@@ -17,13 +17,15 @@ final class TaskLock {
 }
 
 enum Page: String, CaseIterable, Identifiable, Hashable {
-    case status, clean, purge, installers, uninstall, optimize, history
+    case status, analyze, duplicates, clean, purge, installers, uninstall, optimize, history
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .status: "État du système"
+        case .analyze: "Analyse"
+        case .duplicates: "Doublons"
         case .clean: "Nettoyage"
         case .purge: "Projets"
         case .installers: "Installeurs"
@@ -36,6 +38,8 @@ enum Page: String, CaseIterable, Identifiable, Hashable {
     var symbol: String {
         switch self {
         case .status: "gauge.with.dots.needle.50percent"
+        case .analyze: "chart.pie"
+        case .duplicates: "doc.on.doc"
         case .clean: "sparkles"
         case .purge: "shippingbox"
         case .installers: "externaldrive.badge.minus"
@@ -56,6 +60,8 @@ final class AppModel {
 
     let lock = TaskLock()
     let status: StatusStore
+    let analyze: AnalyzeStore
+    let duplicates: DuplicatesStore
     let clean: CleanStore
     let purge: DiskItemStore
     let installers: DiskItemStore
@@ -81,6 +87,8 @@ final class AppModel {
         libexec = mo.flatMap(MoleCLI.libexecDirectory(for:))
         let path = mo ?? "/opt/homebrew/bin/mo"
         status = StatusStore(moPath: path)
+        analyze = AnalyzeStore(moPath: path)
+        duplicates = DuplicatesStore(lock: lock)
         clean = CleanStore(moPath: path, lock: lock)
         purge = DiskItemStore(kind: .purge, moPath: path, libexec: libexec, lock: lock)
         installers = DiskItemStore(kind: .installers, moPath: path, libexec: libexec, lock: lock)

@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 APP="build/moleCleaner.app"
 BIN="$APP/Contents/MacOS/moleCleaner"
-VERSION="1.2.0"
+VERSION="2.0.0"
 INSTALL=false
 UNIVERSAL=false
 for arg in "$@"; do

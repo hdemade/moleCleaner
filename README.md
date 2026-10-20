@@ -66,6 +66,8 @@ une confirmation (clic droit → Ouvrir).
 | Nettoyage | `mo clean --dry-run` puis `mo clean` | Aperçu par catégorie et par chemin, puis nettoyage complet. Option pour les caches système (mot de passe admin). Clic droit sur un chemin pour le protéger (`~/.config/mole/whitelist`). |
 | Projets | `mo purge --dry-run` | Mole détecte les artefacts de build, tu coches, et l'app les met à la Corbeille. |
 | Installeurs | détection de `mo installer` | Même principe pour les .dmg, .pkg, etc. |
+| Analyse (Disques) | `mo analyze --json [dossier]` | Anneau de répartition du disque (Swift Charts) et liste triable par nom, taille ou date. La vue d'ensemble est affinée par une analyse détaillée de chaque emplacement ; clic sur un dossier pour l'explorer, gros fichiers et emplacements « à surveiller ». |
+| Doublons (Disques) | aucune, recherche faite par l'app | Dossier personnel (hors Bibliothèque) ou dossier choisi. Fichiers regroupés par taille, puis comparés par empreinte SHA-256 ; les copies cochées partent à la Corbeille, un exemplaire est toujours conservé. |
 | Applications | `mo uninstall --list` / `mo uninstall <noms>` | Liste avec icônes et tailles, sélection multiple, désinstallation par Mole (Corbeille). |
 | Optimisation | `mo optimize --dry-run` puis `mo optimize` | Aperçu des tâches et du diagnostic, puis exécution avec ou sans droits admin. |
 | Historique | `mo history --json` | Sessions passées et accès aux journaux de Mole. |

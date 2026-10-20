@@ -17,6 +17,10 @@ struct ContentView: View {
                     row(.purge)
                     row(.installers)
                 }
+                Section("Disques") {
+                    row(.analyze)
+                    row(.duplicates)
+                }
                 Section("Applications") { row(.uninstall) }
                 Section("Maintenance") {
                     row(.optimize)
@@ -122,6 +126,8 @@ struct PageDetail: View {
             } else {
                 switch page {
                 case .status: StatusView()
+                case .analyze: AnalyzeView()
+                case .duplicates: DuplicatesView()
                 case .clean: CleanView()
                 case .purge: DiskItemsView(store: model.purge)
                 case .installers: DiskItemsView(store: model.installers)
